@@ -1,0 +1,102 @@
+services:
+  civigest-mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: civigest
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    entrypoint: >
+      /bin/sh -c "chmod 644 /etc/mysql/conf.d/my.cnf && docker-entrypoint.sh mysqld"
+    networks:
+      - mynetwork
+
+  civigest-basicgest:
+    image: civigest-basic:lastest
+    ports:
+      - "44319:8080"
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__Default=server=civigest-mysql;port=3306;database=civigest;user=root;password=12345678;
+    depends_on:
+      - civigest-mysql
+    networks:
+      - mynetwork
+    volumes:
+      - ./keys:/root/.aspnet/DataProtection-Keys
+
+  civigest-librarygest:
+    image: civigest-library:lastest
+    ports:
+      - "44389:8080"
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__Default=server=civigest-mysql;port=3306;database=civigest;user=root;password=12345678;
+    depends_on:
+      - civigest-mysql
+    networks:
+      - mynetwork
+    volumes:
+      - ./keys:/root/.aspnet/DataProtection-Keys
+
+  civigest-membergest:
+    image: civigest-member:lastest
+    ports:
+      - "44307:8080"
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__Default=server=civigest-mysql;port=3306;database=civigest;user=root;password=12345678;
+      - NotificationUtility=http://civigest-notification:8080/api/Notification;
+    depends_on:
+      - civigest-mysql
+    networks:
+      - mynetwork
+    volumes:
+      - ./keys:/root/.aspnet/DataProtection-Keys
+
+  civigest-auth-utility:
+    image: civigest-auth:lastest
+    ports:
+      - "44309:8080"
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__Default=server=civigest-mysql;port=3306;database=civigest;user=root;password=12345678;
+    depends_on:
+      - civigest-mysql
+    networks:
+      - mynetwork
+    volumes:
+      - ./keys:/root/.aspnet/DataProtection-Keys
+
+  civigest-notification:
+    image: civigest-notification:lastest
+    ports:
+      - "44351:8080"
+    restart: unless-stopped
+    environment:
+      - ConnectionStrings__Default=server=civigest-mysql;port=3306;database=civigest;user=root;password=12345678;
+    depends_on:
+      - civigest-mysql
+    networks:
+      - mynetwork
+    volumes:
+      - ./keys:/root/.aspnet/DataProtection-Keys
+
+  civigest-frontend:
+    image: civigest-frontend:lastest
+    ports:
+      - "4200:80"
+    restart: unless-stopped
+    networks:
+      - mynetwork
+
+volumes:
+  mysql_data:
+
+networks:
+  mynetwork:
